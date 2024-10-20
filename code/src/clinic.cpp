@@ -1,9 +1,11 @@
 #include "clinic.h"
 #include "costs.h"
+#include <pcosynchro/pcomutex.h>
 #include <pcosynchro/pcothread.h>
 #include <iostream>
 
 IWindowInterface* Clinic::interface = nullptr;
+PcoMutex clinicMutex(PcoMutex::Recursive);
 
 Clinic::Clinic(int uniqueId, int fund, std::vector<ItemType> resourcesNeeded)
     : Seller(fund, uniqueId), nbTreated(0), resourcesNeeded(resourcesNeeded)
@@ -26,13 +28,55 @@ bool Clinic::verifyResources() {
 }
 
 int Clinic::request(ItemType what, int qty){
-    // TODO 
+  int totalReceived = 0;
 
-    return 0;
+    for (Seller* hospital : hospitals) {
+        int received = hospital->send(what, qty - totalReceived, 0);
+        if (received > 0) {
+            // TODO: section critique
+            clinicMutex.lock();
+            stocks[what] += received;
+            totalReceived += received;
+            clinicMutex.unlock();
+            // TODO: section critique
+
+            QString message = QString("Requested %1 %2")
+                              .arg(received)
+                              .arg(static_cast<int>(what));
+            interface->consoleAppendText(uniqueId, message);
+            
+            if (totalReceived >= qty) {
+                break;
+            }
+        }
+    }
+    
+    return totalReceived;
 }
 
 void Clinic::treatPatient() {
-    // TODO 
+    // TODO
+    for (const auto& item : resourcesNeeded) {
+        if (item == ItemType::PatientSick) {
+            clinicMutex.lock();
+            stocks[item]--;
+            nbTreated++;
+            interface->consoleAppendText(uniqueId, "Clinic has healed a new patient");
+            clinicMutex.unlock();
+
+            break;
+        }
+    }
+
+    EmployeeType employee = getEmployeeThatProduces(ItemType::PatientHealed);
+    int salary = getEmployeeSalary(employee);
+
+    // TODO: section critique
+    clinicMutex.lock();
+    money -= salary;
+    interface->updateFund(uniqueId, money);
+    clinicMutex.unlock();
+    // TODO: section critique
 
     //Temps simulant un traitement 
     interface->simulateWork();
@@ -44,6 +88,22 @@ void Clinic::treatPatient() {
 
 void Clinic::orderResources() {
     // TODO 
+    for (const auto& item : resourcesNeeded) {
+        if (stocks[item] == 0) {
+            for (Seller* supplier : suppliers) {
+                int ordered = supplier->send(item, 1, 0); // Logique de facturation à ajouter
+                if (ordered > 0) {
+                    // TODO: section critique
+                    clinicMutex.lock();
+                    stocks[item] += ordered;
+                    clinicMutex.unlock();
+                    // TODO: section critique
+                    // interface->consoleAppendText(uniqueId, "Ordered 1 " + std::to_string(static_cast<int>(item)));
+                    return; // Une fois une ressource commandée, on sort de la méthode
+                }
+            }
+        }
+    }
 }
 
 void Clinic::run() {
@@ -53,8 +113,7 @@ void Clinic::run() {
     }
     interface->consoleAppendText(uniqueId, "[START] Factory routine");
 
-    while (true /*TODO*/) {
-        
+    while (!PcoThread::thisThread()->stopRequested()) {
         if (verifyResources()) {
             treatPatient();
         } else {

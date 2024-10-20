@@ -45,7 +45,7 @@ void Hospital::run()
 
     interface->consoleAppendText(uniqueId, "[START] Hospital routine");
 
-    while (true /*TODO*/) {
+    while (!PcoThread::thisThread()->stopRequested()) {
         transferPatientsFromClinic();
 
         freeHealedPatient();
@@ -56,6 +56,7 @@ void Hospital::run()
     }
 
     interface->consoleAppendText(uniqueId, "[STOP] Hospital routine");
+    std::cout << "[STOP] Hospital routine" << std::endl;
 }
 
 int Hospital::getAmountPaidToWorkers() {

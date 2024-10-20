@@ -1,5 +1,7 @@
 #include "ambulance.h"
 #include "costs.h"
+#include <iostream>
+#include <ostream>
 #include <pcosynchro/pcothread.h>
 
 IWindowInterface* Ambulance::interface = nullptr;
@@ -27,10 +29,9 @@ void Ambulance::sendPatient(){
 void Ambulance::run() {
     interface->consoleAppendText(uniqueId, "[START] Ambulance routine");
 
-    while (true /*TODO*/) {
-    
+    while (!PcoThread::thisThread()->stopRequested()) {
         sendPatient();
-        
+
         interface->simulateWork();
 
         interface->updateFund(uniqueId, money);
@@ -38,6 +39,8 @@ void Ambulance::run() {
     }
 
     interface->consoleAppendText(uniqueId, "[STOP] Ambulance routine");
+  std::cout << "[STOP] Ambulance routine" << std::endl;
+
 }
 
 std::map<ItemType, int> Ambulance::getItemsForSale() {
