@@ -6,10 +6,14 @@
 #include <map>
 #include <vector>
 #include "costs.h"
+#include <string>
 
 enum class ItemType {
     PatientSick, PatientHealed, Syringe, Pill, Scalpel, Thermometer, Stethoscope, Nothing
 };
+
+// implement to string for ItemType
+std::string ItemTypeToString(ItemType item);
 
 int getCostPerUnit(ItemType item);
 QString getItemName(ItemType item);

@@ -1,5 +1,6 @@
 #include "supplier.h"
 #include "costs.h"
+#include "seller.h"
 #include <iostream>
 #include <ostream>
 #include <pcosynchro/pcomutex.h>
@@ -22,58 +23,57 @@ Supplier::Supplier(int uniqueId, int fund,
 
 // buy
 int Supplier::request(ItemType it, int qty) {
-  if (stocks.find(it) == stocks.end() || stocks[it] < qty) {
-    return 0;
-  }
-
-  // TODO: critical section
   supplierMutex.lock();
   int totalCost = getCostPerUnit(it) * qty;
 
-  // Update the stock and the supplier's funds
-  stocks[it] -= qty;
-  this->money += totalCost;
-  // TODO: critical section
+  if (money < totalCost) {
+    supplierMutex.unlock();
+    return 0; // Not enough funds to proceed
+  }
 
-  interface->updateStock(uniqueId, &stocks);
+  stocks[it] += qty;
+  money -= totalCost;
+
+  // Update the interface immediately after changes
   interface->updateFund(uniqueId, money);
-  supplierMutex.unlock();
+  interface->updateStock(uniqueId, &stocks);
 
+  supplierMutex.unlock();
   return totalCost;
 }
 
 void Supplier::run() {
   interface->consoleAppendText(uniqueId, "[START] Supplier routine");
-    
+
   std::cout << "[Start] Supplier routine" << std::endl;
-    while (!PcoThread::thisThread()->stopRequested()) {
-        ItemType resourceSupplied = getRandomItemFromStock();
-        int employeeSalary = getEmployeeSalary(getEmployeeThatProduces(resourceSupplied));
+  while (!PcoThread::thisThread()->stopRequested()) {
+    supplierMutex.lock();
+    ItemType resourceSupplied = getRandomItemFromStock();
+    int employeeSalary =
+        getEmployeeSalary(getEmployeeThatProduces(resourceSupplied));
+    int totalCost = employeeSalary + getCostPerUnit(resourceSupplied);
 
-        if (money >= employeeSalary) {
-            // Lock the mutex before accessing shared resources
-            supplierMutex.lock();
+    if (money >= totalCost) {
+      // import items (simulate delegating importation to employee)
+      int result = request(resourceSupplied, 1);
+      if (result > 0) {
+        interface->consoleAppendText(uniqueId, "[RUN] STILL HAS MONEY");
+        // Deduct the salary from the supplier's funds
+        money -= employeeSalary;
 
-            interface->consoleAppendText(uniqueId, "[RUN] STILL HAS MONEY");
-            // Deduct the salary from the supplier's funds
-            money -= employeeSalary;
+        nbSupplied++;
 
-            // import items (simulate delegating importation to employee)
-            int result = send(resourceSupplied, 1, employeeSalary);
-            if (result > 0) {
-                nbSupplied++;
-
-                // Update interface with new funds and stocks
-                interface->updateFund(uniqueId, money);
-                interface->updateStock(uniqueId, &stocks);
-            }
-            supplierMutex.unlock();
-        }
-
-        interface->simulateWork();
+        // Update interface with new funds and stocks
+        interface->updateFund(uniqueId, money);
+        interface->updateStock(uniqueId, &stocks);
+      }
     }
 
-    interface->consoleAppendText(uniqueId, "[STOP] Supplier routine");
+    supplierMutex.unlock();
+    interface->simulateWork();
+  }
+
+  interface->consoleAppendText(uniqueId, "[STOP] Supplier routine");
   std::cout << "[STOP] Supplier routine" << std::endl;
 }
 
@@ -81,9 +81,17 @@ std::map<ItemType, int> Supplier::getItemsForSale() { return stocks; }
 
 int Supplier::getMaterialCost() {
   int totalCost = 0;
+
+  if (!resourcesSupplied.size()) {
+    return totalCost;
+  }
+
+  supplierMutex.lock();
   for (const auto &item : resourcesSupplied) {
     totalCost += getCostPerUnit(item);
   }
+  supplierMutex.unlock();
+
   return totalCost;
 }
 
@@ -101,15 +109,21 @@ std::vector<ItemType> Supplier::getResourcesSupplied() const {
 
 // offer
 int Supplier::send(ItemType item, int qty, int bill) {
-  if (money < bill) {
-      return 0;
+  // TODO: critical section (stocks[item] is not atomic operation)
+  supplierMutex.lock();
+  if (stocks.find(item) == stocks.end() || stocks[item] < qty) {
+    supplierMutex.unlock();
+    return 0;
   }
 
   // Update funds and stock
-  // TODO: critical section
-  supplierMutex.lock();
-  money -= bill;
-  stocks[item] += qty;
+  money += bill;
+  stocks[item] -= qty;
+
+  // Update the interface immediately after changes
+  interface->updateFund(uniqueId, money);
+  interface->updateStock(uniqueId, &stocks);
+
   supplierMutex.unlock();
   // TODO: critical section
 

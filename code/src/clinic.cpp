@@ -95,7 +95,7 @@ void Clinic::treatPatient() {
 void Clinic::orderResources() {
   for (const auto &resource : resourcesNeeded) {
     for (auto *supplier : suppliers) {
-      int availableQty = 10;
+      int availableQty = 1;
       int cost = supplier->request(resource, availableQty);
       if (cost > 0) {
         clinicMutex.lock();
