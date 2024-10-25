@@ -43,21 +43,19 @@ public:
     int getWaitingPatients();
 
     /**
-     * @brief send
-     * Transfère un certain nombre de patients de la clinique vers un autre établissement.
-     * @param it Le type de patients à transférer (malades ou soignés)
-     * @param number Le nombre de patients à transférer
-     * @param bill Le coût associé à la transaction
-     * @return Le coût de la transaction, ou 0 si l'échange n'est pas possible.
+     * @brief Fonction permettant de proposer des ressources au vendeur
+     * @param what Le type de resource
+     * @param qty Nombre de ressources
+     * @param bill Le coût de la transaction
+     * @return La quantité acceptée ou la facture (peu dépendre de votre logique) et 0 si la transaction n'est pas acceptée.
      */
-    int send(ItemType it, int number, int bill) override;
+    int send(ItemType it, int qty, int bill) override;
 
     /**
-     * @brief request
-     * Demande une certaine quantité de patients à un autre établissement.
-     * @param what Le type de patients demandés (malades ou soignés)
-     * @param qty La quantité de patients demandée
-     * @return Le nombre de patients reçus ou 0 si la demande n'est pas satisfaite.
+     * @brief Fonction permettant d'acheter des ressources au vendeur
+     * @param what Le type de resource à acheter
+     * @param qty Nombre de ressources voulant être achetées
+     * @return La facture : côut de la resource * le nombre, 0 si indisponible
      */
     int request(ItemType what, int qty) override;
 

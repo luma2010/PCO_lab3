@@ -37,21 +37,19 @@ public:
     std::map<ItemType, int> getItemsForSale() override;
 
     /**
-     * @brief send
-     * Transfère des patients hors de l'hôpital, par exemple vers une autre institution.
-     * @param it Le type de patients échangés (malades ou soignés)
-     * @param qty La quantité de patients à transférer
-     * @param bill Le coût associé à la transaction
-     * @return Le coût de la transaction, ou 0 si l'échange n'est pas possible (ex. manque de lits).
+     * @brief Fonction permettant de proposer des ressources au vendeur
+     * @param what Le type de resource
+     * @param qty Nombre de ressources
+     * @param bill Le coût de la transaction
+     * @return La quantité acceptée ou la facture (peu dépendre de votre logique) et 0 si la transaction n'est pas acceptée.
      */
     int send(ItemType it, int qty, int bill) override;
 
     /**
-     * @brief request
-     * Demande une certaine quantité de patients d'un type spécifique (malades ou soignés).
-     * @param what Le type de patients demandés
-     * @param qty La quantité de patients demandée
-     * @return Le nombre de patients reçus ou 0 si la demande n'est pas satisfaite.
+     * @brief Fonction permettant d'acheter des ressources au vendeur
+     * @param what Le type de resource à acheter
+     * @param qty Nombre de ressources voulant être achetées
+     * @return La facture : côut de la resource * le nombre, 0 si indisponible
      */
     int request(ItemType what, int qty) override;
 
@@ -94,7 +92,6 @@ private:
 
     void freeHealedPatient();
 
-    std::vector<Seller*> ambulances;  // Liste des ambulances liées à l'hôpital, qui apportent des patients malades
     std::vector<Seller*> clinics;     // Liste des cliniques liées à l'hôpital, qui renvoient des patients soignés
 
     int maxBeds;        // Nombre maximum de lits disponibles à l'hôpital
