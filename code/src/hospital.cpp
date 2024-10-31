@@ -3,6 +3,8 @@
 #include <iostream>
 #include <pcosynchro/pcothread.h>
 
+PcoMutex hospitalMutex;
+
 IWindowInterface* Hospital::interface = nullptr;
 
 Hospital::Hospital(int uniqueId, int fund, int maxBeds)
@@ -10,7 +12,7 @@ Hospital::Hospital(int uniqueId, int fund, int maxBeds)
 {
     interface->updateFund(uniqueId, fund);
     interface->consoleAppendText(uniqueId, "Hospital Created with " + QString::number(maxBeds) + " beds");
-    
+
     std::vector<ItemType> initialStocks = { ItemType::PatientHealed, ItemType::PatientSick };
 
     for(const auto& item : initialStocks) {
@@ -19,12 +21,20 @@ Hospital::Hospital(int uniqueId, int fund, int maxBeds)
 }
 
 int Hospital::request(ItemType what, int qty){
-    // TODO 
+    if(currentBeds - qty >= 0){
+        int bill = qty*getCostPerUnit(what);
+        hospitalMutex.lock();
+        stocks[what] -= qty;
+        money += bill;
+        currentBeds -= qty;
+        hospitalMutex.unlock();
+        return bill;
+    }
     return 0;
 }
 
 void Hospital::freeHealedPatient() {
-    // TODO 
+    // TODO
 }
 
 void Hospital::transferPatientsFromClinic() {
@@ -32,7 +42,18 @@ void Hospital::transferPatientsFromClinic() {
 }
 
 int Hospital::send(ItemType it, int qty, int bill) {
-    // TODO
+    if(money < qty*getCostPerUnit(it)){
+        return 0;
+    }else if(maxBeds - currentBeds - qty >= 0){
+        hospitalMutex.lock();
+        stocks[it] += qty;
+        currentBeds += qty;
+        money -= bill;
+        nbHospitalised++;
+        money -= getEmployeeSalary(EmployeeType::Nurse);
+        hospitalMutex.unlock();
+        return bill;
+    }
     return 0;
 }
 
@@ -56,7 +77,6 @@ void Hospital::run()
     }
 
     interface->consoleAppendText(uniqueId, "[STOP] Hospital routine");
-    std::cout << "[STOP] Hospital routine" << std::endl;
 }
 
 int Hospital::getAmountPaidToWorkers() {

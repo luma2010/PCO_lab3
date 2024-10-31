@@ -1,13 +1,12 @@
 #include "ambulance.h"
 #include "costs.h"
-#include <iostream>
-#include <ostream>
 #include <pcosynchro/pcothread.h>
 
 IWindowInterface* Ambulance::interface = nullptr;
+PcoMutex ambulanceMutex;
 
 Ambulance::Ambulance(int uniqueId, int fund, std::vector<ItemType> resourcesSupplied, std::map<ItemType, int> initialStocks)
-    : Seller(fund, uniqueId), resourcesSupplied(resourcesSupplied), nbTransfer(0) 
+    : Seller(fund, uniqueId), resourcesSupplied(resourcesSupplied), nbTransfer(0)
 {
     interface->consoleAppendText(uniqueId, QString("Ambulance Created"));
 
@@ -23,13 +22,26 @@ Ambulance::Ambulance(int uniqueId, int fund, std::vector<ItemType> resourcesSupp
 }
 
 void Ambulance::sendPatient(){
-    // TODO
+    if(getFund() > 0){
+        int qty = 1;
+        int toPay = getCostPerUnit(ItemType::PatientSick)*qty;
+        int bill = chooseRandomSeller(hospitals)->send(ItemType::PatientSick,qty,toPay);
+        if(bill > 0 && getFund() > bill){
+            ambulanceMutex.lock();
+            money += bill;
+            stocks[ItemType::PatientSick] -= qty;
+            nbTransfer++;
+            money -= getEmployeeSalary(EmployeeType::Supplier);
+            ambulanceMutex.unlock();
+        }
+    }
 }
 
 void Ambulance::run() {
     interface->consoleAppendText(uniqueId, "[START] Ambulance routine");
 
     while (!PcoThread::thisThread()->stopRequested()) {
+
         sendPatient();
 
         interface->simulateWork();
@@ -39,8 +51,6 @@ void Ambulance::run() {
     }
 
     interface->consoleAppendText(uniqueId, "[STOP] Ambulance routine");
-  std::cout << "[STOP] Ambulance routine" << std::endl;
-
 }
 
 std::map<ItemType, int> Ambulance::getItemsForSale() {
