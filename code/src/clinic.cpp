@@ -28,7 +28,14 @@ bool Clinic::verifyResources() {
 }
 
 int Clinic::request(ItemType what, int qty){
-    // TODO
+    int bill = getEmployeeSalary(EmployeeType::Nurse)*qty;
+    if(bill > 0 && stocks[what] > 0){
+        clinicMutex.lock();
+        money += bill;
+        stocks[what] -= qty;
+        clinicMutex.unlock();
+        return bill;
+    }
 
     return 0;
 }

@@ -21,23 +21,50 @@ Hospital::Hospital(int uniqueId, int fund, int maxBeds)
 }
 
 int Hospital::request(ItemType what, int qty){
-    if(currentBeds - qty >= 0){
+    hospitalMutex.lock();
+    if(stocks[what] - qty >= 0){
         int bill = qty*getCostPerUnit(what);
-        hospitalMutex.lock();
         stocks[what] -= qty;
         money += bill;
         currentBeds -= qty;
         hospitalMutex.unlock();
         return bill;
     }
+    hospitalMutex.unlock();
     return 0;
 }
 
 void Hospital::freeHealedPatient() {
-    // TODO
+    if(stocks[ItemType::PatientHealed] > 0){
+        hospitalMutex.lock();
+        for(size_t i = 0; i < nbDayLeft.size(); i++){
+            if(nbDayLeft[i] > 0){
+                nbDayLeft[i] -= 1;
+            }else{
+                stocks[ItemType::PatientHealed] -=1;
+                nbFree++;
+                nbDayLeft.erase(nbDayLeft.begin()+i);
+                currentBeds -= 1;
+            }
+        }
+        hospitalMutex.unlock();
+    }
+
 }
 
 void Hospital::transferPatientsFromClinic() {
+    int qty = 1;
+    int bill = chooseRandomSeller(clinics)->request(ItemType::PatientHealed, qty);
+    if(bill > 0){
+        if(money - bill*qty >= 0 && maxBeds - currentBeds - qty >= 0){
+            hospitalMutex.lock();
+            currentBeds +=qty;
+            stocks[ItemType::PatientHealed] += qty;
+            money -= bill;
+            nbDayLeft.push_back(5);
+            hospitalMutex.unlock();
+        }
+    }
     // TODO
 }
 
@@ -70,6 +97,8 @@ void Hospital::run()
         transferPatientsFromClinic();
 
         freeHealedPatient();
+
+        std::cout << "for " << uniqueId << " maxBeds = " << currentBeds << std::endl;
 
         interface->updateFund(uniqueId, money);
         interface->updateStock(uniqueId, &stocks);
