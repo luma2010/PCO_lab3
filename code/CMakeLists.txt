@@ -8,13 +8,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Qt5 COMPONENTS Core Gui Test Widgets)
 if (NOT Qt5_FOUND)
-    find_package(Qt6 COMPONENTS Core Gui Test Widgets REQUIRED)
+  find_package(Qt6 COMPONENTS Core Gui Test Widgets REQUIRED)
 endif()
 
 if (Qt5_FOUND)
-    add_definitions(-DUSING_QT5)
+  add_definitions(-DUSING_QT5)
 else()
-    add_definitions(-DUSING_QT6)
+  add_definitions(-DUSING_QT6)
 endif()
 
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/ui)
@@ -60,10 +60,15 @@ set(FORMS
 
 add_executable(pco_hospital ${SOURCES} ${HEADERS})
 
+# target_compile_options(pco_hospital PRIVATE -fsanitize=address)
+# set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+# set(CMAKE_CXX_FLAGS_DEBUG "-g")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 if (Qt5_FOUND)
-    target_link_libraries(pco_hospital PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets -lpcosynchro)
+  target_link_libraries(pco_hospital PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets -lpcosynchro)
 else()
-    target_link_libraries(pco_hospital PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets -lpcosynchro)
+  target_link_libraries(pco_hospital PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets -lpcosynchro)
 endif()
 
 set(SOURCES_TESTS
@@ -97,9 +102,9 @@ set(HEADERS_TESTS
 add_executable(pco_hospital_tests ${SOURCES_TESTS} ${HEADERS_TESTS})
 
 if (Qt5_FOUND)
-    target_link_libraries(pco_hospital_tests PRIVATE gtest Qt5::Core Qt5::Gui Qt5::Test Qt5::Widgets -lpcosynchro)
+  target_link_libraries(pco_hospital_tests PRIVATE gtest Qt5::Core Qt5::Gui Qt5::Test Qt5::Widgets -lpcosynchro)
 else()
-    target_link_libraries(pco_hospital_tests PRIVATE gtest Qt6::Core Qt6::Gui Qt6::Test Qt6::Widgets -lpcosynchro)
+  target_link_libraries(pco_hospital_tests PRIVATE gtest Qt6::Core Qt6::Gui Qt6::Test Qt6::Widgets -lpcosynchro)
 endif()
 target_compile_definitions(pco_hospital_tests PRIVATE TESTING_MODE)
 
