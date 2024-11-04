@@ -38,28 +38,17 @@ int Hospital::request(ItemType what, int qty) {
 void Hospital::freeHealedPatient() {
   if (stocks[ItemType::PatientHealed] > 0) {
     mutex.lock();
-    for (size_t i = 0; i < nbDaysLeft.size(); i++) {
-      if (nbDaysLeft[i] > 0) {
-        nbDaysLeft[i] -= 1;
+    for (auto it = nbDaysLeft.begin(); it != nbDaysLeft.end();) {
+      if (*it > 0) {
+        (*it) -= 1;
+        ++it;
       } else {
         stocks[ItemType::PatientHealed] -= 1;
         nbFree++;
-        nbDaysLeft.erase(nbDaysLeft.begin() + i);
         currentBeds -= 1;
+        it = nbDaysLeft.erase(it);
       }
     }
-    // for (auto it = nbDaysLeft.begin(); it != nbDaysLeft.end(); ) {
-    //     if (*it > 0) {
-    //         (*it) -= 1;
-    //         ++it;
-    //     } else {
-    //         stocks[ItemType::PatientHealed] -= 1;
-    //         nbFree++;
-    //         currentBeds -= 1;
-    //         it = nbDaysLeft.erase(it);  // Erase returns the iterator to the
-    //         next element
-    //     }
-    // }
     mutex.unlock();
   }
 }

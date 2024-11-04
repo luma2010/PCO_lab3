@@ -113,8 +113,7 @@ private:
 
   int nbFree; // Nombre de personnes qui sont sorties soignées de l'hôpital.
 
-  // std::list<int> nbDaysLeft;
-  std::vector<int> nbDaysLeft;
+  std::list<int> nbDaysLeft;
 
   static IWindowInterface
       *interface; // Pointeur statique vers l'interface utilisateur pour les
