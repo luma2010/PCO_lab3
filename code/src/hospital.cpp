@@ -1,3 +1,8 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ */
+
 #include "hospital.h"
 #include "costs.h"
 #include "seller.h"

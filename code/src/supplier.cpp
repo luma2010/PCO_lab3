@@ -1,3 +1,8 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ */
+
 #include "supplier.h"
 #include <pcosynchro/pcothread.h>
 

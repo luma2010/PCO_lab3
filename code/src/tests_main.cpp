@@ -1,3 +1,8 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ */
+
 #include "ambulance.h"
 #include "fakeinterface.h"
 #include "iwindowinterface.h"

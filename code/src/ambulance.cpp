@@ -1,3 +1,8 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ */
+
 #include "ambulance.h"
 #include "seller.h"
 #include <pcosynchro/pcothread.h>

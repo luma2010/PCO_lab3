@@ -1,3 +1,8 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ */
+
 #include "clinic.h"
 #include "seller.h"
 #include <iostream>

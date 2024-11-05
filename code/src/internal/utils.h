@@ -1,3 +1,9 @@
+/**
+ * @author Rocha Ferreira Mário André
+ * @author Chollet Florian
+ * Only modified to fix memory leak
+ */
+
 #ifndef UTILS_H
 #define UTILS_H
 
