@@ -28,25 +28,27 @@ Ambulance::Ambulance(int uniqueId, int fund,
 }
 
 void Ambulance::sendPatient() {
-  if (getFund() > 0) {
-    int toPay = getCostPerUnit(ItemType::PatientSick) * DEFAULT_QUANTITY;
-    int toReceive = chooseRandomSeller(hospitals)->send(
-        ItemType::PatientSick, DEFAULT_QUANTITY, toPay);
-    int salary = getEmployeeSalary(EmployeeType::Supplier);
+  if (getFund() <= 0) {
+    return;
+  }
 
-    // has enough money to pay employee salary
-    if (toReceive > 0 && getFund() > salary) {
-      mutex.lock();
+  int toPay = getCostPerUnit(ItemType::PatientSick) * DEFAULT_QUANTITY;
+  int toReceive = chooseRandomSeller(hospitals)->send(ItemType::PatientSick,
+                                                      DEFAULT_QUANTITY, toPay);
+  int salary = getEmployeeSalary(EmployeeType::Supplier);
 
-      // Earn revenue from patient transfer
-      money += toReceive;
-      stocks[ItemType::PatientSick] -= DEFAULT_QUANTITY;
-      nbTransfer++;
-      // Pay employee salary
-      money -= salary;
+  // has enough money to pay employee salary
+  if (toReceive > 0 && getFund() > salary) {
+    mutex.lock();
 
-      mutex.unlock();
-    }
+    // Earn revenue from patient transfer
+    money += toReceive;
+    stocks[ItemType::PatientSick] -= DEFAULT_QUANTITY;
+    nbTransfer++;
+    // Pay employee salary
+    money -= salary;
+
+    mutex.unlock();
   }
 }
 

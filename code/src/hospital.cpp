@@ -29,7 +29,7 @@ Hospital::Hospital(int uniqueId, int fund, int maxBeds)
 
 // "sell" patient
 int Hospital::request(ItemType what, int qty) {
-  if (qty == 0) {
+  if (qty <= 0) {
     return 0;
   }
 
@@ -51,48 +51,52 @@ int Hospital::request(ItemType what, int qty) {
 }
 
 void Hospital::freeHealedPatient() {
-  if (stocks[ItemType::PatientHealed] > 0) {
-    mutex.lock();
-    for (auto it = nbDaysLeft.begin(); it != nbDaysLeft.end();) {
-      if (*it > 0) {
-        (*it) -= 1;
-        ++it;
-        // have to do this because when modifying the iterator, it becomes
-        // invalid (cases segfault when erasing from nbDaysLeft)
-      } else {
-        stocks[ItemType::PatientHealed] -= DEFAULT_QUANTITY;
-        nbFree++;
-        currentBeds -= 1;
-        it = nbDaysLeft.erase(it); // Remove healed patient with expired days
-      }
-    }
-    mutex.unlock();
+  if (stocks[ItemType::PatientHealed] <= 0) {
+    return;
   }
+
+  mutex.lock();
+  for (auto it = nbDaysLeft.begin(); it != nbDaysLeft.end();) {
+    if (*it > 0) {
+      (*it) -= 1;
+      ++it;
+      // have to do this because when modifying the iterator, it becomes
+      // invalid (cases segfault when erasing from nbDaysLeft)
+    } else {
+      stocks[ItemType::PatientHealed] -= DEFAULT_QUANTITY;
+      nbFree++;
+      currentBeds -= 1;
+      it = nbDaysLeft.erase(it); // Remove healed patient with expired days
+    }
+  }
+  mutex.unlock();
 }
 
 void Hospital::transferPatientsFromClinic() {
   int bill = chooseRandomSeller(clinics)->request(ItemType::PatientHealed,
                                                   DEFAULT_QUANTITY);
-  if (bill > 0) {
-    // if has enough money
-    if (money - (bill * DEFAULT_QUANTITY) >= 0 &&
-        (maxBeds - currentBeds - DEFAULT_QUANTITY) >= 0) {
-      mutex.lock();
+  if (bill <= 0) {
+    return;
+  }
 
-      currentBeds += DEFAULT_QUANTITY;
-      stocks[ItemType::PatientHealed] += DEFAULT_QUANTITY;
-      money -= bill;
-      // set lifetime of patient to 5 days
-      nbDaysLeft.push_back(5);
+  // if has enough money
+  if (money - (bill * DEFAULT_QUANTITY) >= 0 &&
+      (maxBeds - currentBeds - DEFAULT_QUANTITY) >= 0) {
+    mutex.lock();
 
-      mutex.unlock();
-    }
+    currentBeds += DEFAULT_QUANTITY;
+    stocks[ItemType::PatientHealed] += DEFAULT_QUANTITY;
+    money -= bill;
+    // set lifetime of patient to 5 days
+    nbDaysLeft.push_back(5);
+
+    mutex.unlock();
   }
 }
 
 // receives patient
 int Hospital::send(ItemType it, int qty, int bill) {
-  if (qty == 0) {
+  if (qty <= 0) {
     return 0;
   }
 

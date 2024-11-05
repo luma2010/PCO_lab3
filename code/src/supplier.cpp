@@ -21,14 +21,19 @@ Supplier::Supplier(int uniqueId, int fund,
 }
 
 int Supplier::request(ItemType it, int qty) {
-  if (stocks[it] >= qty) {
-    mutex.lock();
-    stocks[it] -= qty;
-    money += getCostPerUnit(it) * qty;
-    mutex.unlock();
-    return getCostPerUnit(it) * qty;
+  // make sur we have enough items in stock
+  if (stocks[it] < qty) {
+    return 0;
   }
-  return 0;
+
+  // update stock and funds
+  mutex.lock();
+  int cost = getCostPerUnit(it) * qty;
+  stocks[it] -= qty;
+  money += cost;
+  mutex.unlock();
+
+  return cost;
 }
 
 void Supplier::run() {
@@ -45,8 +50,8 @@ void Supplier::run() {
 
       /* Temps aléatoire borné qui simule l'attente du travail fini*/
       interface->simulateWork();
-      // TODO
 
+      // update money and nb of supplier resources
       mutex.lock();
       nbSupplied++;
       money -= supplierCost;

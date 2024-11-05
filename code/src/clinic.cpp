@@ -74,31 +74,34 @@ void Clinic::treatPatient() {
 
 void Clinic::orderResources() {
   for (auto &resource : resourcesNeeded) {
+    int cost = DEFAULT_QUANTITY * getCostPerUnit(resource);
+    int bill = 0;
+
+    // if we have enough money
+    if (cost > money) {
+      continue; // Not enough funds, skip this resource
+    }
+
     if (resource == ItemType::PatientSick) {
-      if ((DEFAULT_QUANTITY * getCostPerUnit(resource)) <= money) {
-        int bill =
-            chooseRandomSeller(hospitals)->request(resource, DEFAULT_QUANTITY);
-        if (bill > 0) {
-          mutex.lock();
-          // Deduct resource cost from funds
-          money -= bill;
-          stocks[resource] += DEFAULT_QUANTITY;
-          mutex.unlock();
-        }
+      bill = chooseRandomSeller(hospitals)->request(resource, DEFAULT_QUANTITY);
+      if (bill > 0) {
+        mutex.lock();
+        // Deduct resource cost from funds
+        money -= bill;
+        stocks[resource] += DEFAULT_QUANTITY;
+        mutex.unlock();
       }
+      // }
     } else if (resource == ItemType::PatientHealed) {
 
     } else {
-      if ((DEFAULT_QUANTITY * getCostPerUnit(resource)) <= money) {
-        int bill =
-            chooseRandomSeller(suppliers)->request(resource, DEFAULT_QUANTITY);
-        if (bill > 0) {
-          mutex.lock();
-          // pay bill and add item to stock
-          money -= bill;
-          stocks[resource] += DEFAULT_QUANTITY;
-          mutex.unlock();
-        }
+      bill = chooseRandomSeller(suppliers)->request(resource, DEFAULT_QUANTITY);
+      if (bill > 0) {
+        mutex.lock();
+        // pay bill and add item to stock
+        money -= bill;
+        stocks[resource] += DEFAULT_QUANTITY;
+        mutex.unlock();
       }
     }
   }
