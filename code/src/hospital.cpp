@@ -1,5 +1,6 @@
 #include "hospital.h"
 #include "costs.h"
+#include "seller.h"
 #include <iostream>
 #include <pcosynchro/pcomutex.h>
 #include <pcosynchro/pcothread.h>
@@ -21,16 +22,25 @@ Hospital::Hospital(int uniqueId, int fund, int maxBeds)
   }
 }
 
+// "sell" patient
 int Hospital::request(ItemType what, int qty) {
+  if (qty == 0) {
+    return 0;
+  }
+
   mutex.lock();
   if (stocks[what] - qty >= 0) {
     int bill = qty * getCostPerUnit(what);
+
     stocks[what] -= qty;
     money += bill;
+    // free patient bed
     currentBeds -= qty;
     mutex.unlock();
+
     return bill;
   }
+
   mutex.unlock();
   return 0;
 }
@@ -42,11 +52,13 @@ void Hospital::freeHealedPatient() {
       if (*it > 0) {
         (*it) -= 1;
         ++it;
+        // have to do this because when modifying the iterator, it becomes
+        // invalid (cases segfault when erasing from nbDaysLeft)
       } else {
-        stocks[ItemType::PatientHealed] -= 1;
+        stocks[ItemType::PatientHealed] -= DEFAULT_QUANTITY;
         nbFree++;
         currentBeds -= 1;
-        it = nbDaysLeft.erase(it);
+        it = nbDaysLeft.erase(it); // Remove healed patient with expired days
       }
     }
     mutex.unlock();
@@ -54,22 +66,32 @@ void Hospital::freeHealedPatient() {
 }
 
 void Hospital::transferPatientsFromClinic() {
-  int qty = 1;
-  int bill = chooseRandomSeller(clinics)->request(ItemType::PatientHealed, qty);
+  int bill = chooseRandomSeller(clinics)->request(ItemType::PatientHealed,
+                                                  DEFAULT_QUANTITY);
   if (bill > 0) {
-    if (money - bill * qty >= 0 && maxBeds - currentBeds - qty >= 0) {
+    // if has enough money
+    if (money - (bill * DEFAULT_QUANTITY) >= 0 &&
+        (maxBeds - currentBeds - DEFAULT_QUANTITY) >= 0) {
       mutex.lock();
-      currentBeds += qty;
-      stocks[ItemType::PatientHealed] += qty;
+
+      currentBeds += DEFAULT_QUANTITY;
+      stocks[ItemType::PatientHealed] += DEFAULT_QUANTITY;
       money -= bill;
+      // set lifetime of patient to 5 days
       nbDaysLeft.push_back(5);
+
       mutex.unlock();
     }
   }
-  // TODO
 }
 
+// receives patient
 int Hospital::send(ItemType it, int qty, int bill) {
+  if (qty == 0) {
+    return 0;
+  }
+
+  // Check if hospital can afford the patient costs
   if (money < qty * getCostPerUnit(it)) {
     return 0;
   } else if (maxBeds - currentBeds - qty >= 0) {
@@ -77,13 +99,17 @@ int Hospital::send(ItemType it, int qty, int bill) {
     stocks[it] += qty;
     currentBeds += qty;
 
+    // Deduct costs for receiving patients and paying nurses
     money -= bill;
     nbHospitalised++;
+    // pay nurses
     money -= getEmployeeSalary(EmployeeType::Nurse);
 
     mutex.unlock();
     return bill;
   }
+
+  // Insufficient beds to accept more patients
   return 0;
 }
 

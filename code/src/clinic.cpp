@@ -1,4 +1,5 @@
 #include "clinic.h"
+#include "seller.h"
 #include <iostream>
 #include <pcosynchro/pcothread.h>
 
@@ -28,37 +29,40 @@ int Clinic::request(ItemType what, int qty) {
 
   if (bill > 0 && stocks[what] > 0) {
     mutex.lock();
+    // Clinic earns money for the request
     money += bill;
+    // Reduce stock by requested quantity
     stocks[what] -= qty;
     mutex.unlock();
 
     return bill;
   }
 
+  // No transaction if no stock or funds
   return 0;
 }
 
 void Clinic::treatPatient() {
-  // TODO
-  int qty = 1;
-  int Salary = getEmployeeSalary(EmployeeType::Doctor);
-  if (money - Salary >= 0) {
+  int salary = getEmployeeSalary(EmployeeType::Doctor);
+  if (money - salary >= 0) {
     mutex.lock();
+    // Deduct required resources for patient treatment
     for (auto &resource : resourcesNeeded) {
-      stocks[resource] -= qty;
+      stocks[resource] -= DEFAULT_QUANTITY;
     }
     mutex.unlock();
 
     // Temps simulant un traitement
     interface->simulateWork();
+
     mutex.lock();
-    nbTreated += qty;
-    stocks[ItemType::PatientHealed] += qty;
-    money -= Salary;
+    // Add healed patients to stock
+    nbTreated += DEFAULT_QUANTITY;
+    stocks[ItemType::PatientHealed] += DEFAULT_QUANTITY;
+    // Deduct doctor’s salary from clinic’s funds
+    money -= salary;
     mutex.unlock();
   }
-
-  // TODO
 
   interface->consoleAppendText(uniqueId, "Clinic have healed a new patient");
 }
@@ -66,26 +70,28 @@ void Clinic::treatPatient() {
 void Clinic::orderResources() {
   for (auto &resource : resourcesNeeded) {
     if (resource == ItemType::PatientSick) {
-      int qty = 1;
-      if (qty * getCostPerUnit(resource) <= money) {
-        int bill = chooseRandomSeller(hospitals)->request(resource, qty);
+      if ((DEFAULT_QUANTITY * getCostPerUnit(resource)) <= money) {
+        int bill =
+            chooseRandomSeller(hospitals)->request(resource, DEFAULT_QUANTITY);
         if (bill > 0) {
           mutex.lock();
+          // Deduct resource cost from funds
           money -= bill;
-          stocks[resource] += qty;
+          stocks[resource] += DEFAULT_QUANTITY;
           mutex.unlock();
         }
       }
     } else if (resource == ItemType::PatientHealed) {
 
     } else {
-      int qty = 1;
-      if (qty * getCostPerUnit(resource) <= money) {
-        int bill = chooseRandomSeller(suppliers)->request(resource, qty);
+      if ((DEFAULT_QUANTITY * getCostPerUnit(resource)) <= money) {
+        int bill =
+            chooseRandomSeller(suppliers)->request(resource, DEFAULT_QUANTITY);
         if (bill > 0) {
           mutex.lock();
+          // pay bill and add item to stock
           money -= bill;
-          stocks[resource] += qty;
+          stocks[resource] += DEFAULT_QUANTITY;
           mutex.unlock();
         }
       }

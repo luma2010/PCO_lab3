@@ -20,6 +20,8 @@ enum class ItemType {
   Nothing
 };
 
+#define DEFAULT_QUANTITY 1
+
 // implement to string for ItemType
 std::string ItemTypeToString(ItemType item);
 

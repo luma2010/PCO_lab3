@@ -1,4 +1,5 @@
 #include "ambulance.h"
+#include "seller.h"
 #include <pcosynchro/pcothread.h>
 
 IWindowInterface *Ambulance::interface = nullptr;
@@ -23,16 +24,22 @@ Ambulance::Ambulance(int uniqueId, int fund,
 
 void Ambulance::sendPatient() {
   if (getFund() > 0) {
-    int qty = 1;
-    int toPay = getCostPerUnit(ItemType::PatientSick) * qty;
-    int bill =
-        chooseRandomSeller(hospitals)->send(ItemType::PatientSick, qty, toPay);
-    if (bill > 0 && getFund() > bill) {
+    int toPay = getCostPerUnit(ItemType::PatientSick) * DEFAULT_QUANTITY;
+    int toReceive = chooseRandomSeller(hospitals)->send(
+        ItemType::PatientSick, DEFAULT_QUANTITY, toPay);
+    int salary = getEmployeeSalary(EmployeeType::Supplier);
+
+    // has enough money to pay employee salary
+    if (toReceive > 0 && getFund() > salary) {
       mutex.lock();
-      money += bill;
-      stocks[ItemType::PatientSick] -= qty;
+
+      // Earn revenue from patient transfer
+      money += toReceive;
+      stocks[ItemType::PatientSick] -= DEFAULT_QUANTITY;
       nbTransfer++;
-      money -= getEmployeeSalary(EmployeeType::Supplier);
+      // Pay employee salary
+      money -= salary;
+
       mutex.unlock();
     }
   }
